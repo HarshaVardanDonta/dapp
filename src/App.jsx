@@ -123,6 +123,8 @@ function App() {
         errorMessage = "You denied the transaction. Please try again.";
       } else if (error.message.includes("ETH price too low")) {
         errorMessage = `The current price $${formatPrice(currentPrice)} is below your threshold of $${priceThreshold}. Task not completed.`;
+      } else if (error.message.includes("Not an admin")) {
+        errorMessage = "Only the admin can complete tasks based on price conditions.";
       }
       alert(errorMessage);
     } finally {
