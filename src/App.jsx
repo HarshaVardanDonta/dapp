@@ -31,7 +31,7 @@ function App() {
       await checkAdminStatus(connectedAccount);
     } catch (error) {
       console.error('Error connecting wallet:', error);
-      alert('Error connecting wallet: ' + error.message);
+      alert('Oops! We had trouble connecting to your wallet. Please make sure MetaMask is installed and try again.');
     } finally {
       setLoading(false);
     }
@@ -40,7 +40,7 @@ function App() {
   const loadTasks = async () => {
     try {
       const taskList = await web3Service.getTasks();
-      console.log('📝 Loaded tasks from blockchain:', taskList);
+      console.log('Loaded tasks from blockchain:', taskList);
       setTasks(taskList);
     } catch (error) {
       console.error('Error loading tasks:', error);
@@ -75,45 +75,47 @@ function App() {
   };
 
   const addTask = async () => {
-    console.log('➕ addTask function called with newTask:', newTask);
+    console.log('addTask function called with newTask:', newTask);
     if (!newTask.trim()) return;
 
     try {
       setLoading(true);
-      console.log('📝 Adding task to blockchain:', newTask);
+      console.log('Adding task to blockchain:', newTask);
       await web3Service.addTask(newTask);
       setNewTask('');
       await loadTasks();
       await loadTaskCount();
-      console.log('✅ Task added successfully');
-      alert('Task added successfully!');
+      console.log('Task added successfully');
+      alert('🎉 Awesome! Your task has been added to the blockchain. Time to get things done!');
     } catch (error) {
       console.error('Error adding task:', error);
-      alert('Error adding task: ' + error.message);
+      alert('Hmm, something went wrong while adding your task. Mind giving it another try?');
     } finally {
       setLoading(false);
     }
   };
 
-  const completeTaskWithPrice = async () => {
-    console.log('💰 completeTaskWithPrice function called');
-    console.log('📊 Selected task index:', selectedTaskIndex);
-    console.log('💵 Price threshold:', priceThreshold);
+  function to12DigitPriceFormat(value) {
+    return BigInt(Math.round(parseFloat(value) * 1e8)).toString();
+  }
 
-    if (!selectedTaskIndex || !priceThreshold) return;
+  const completeTaskWithPrice = async () => {
+    console.log('completeTaskWithPrice function called');
+    console.log('Selected task index:', selectedTaskIndex);
+    console.log('Price threshold:', to12DigitPriceFormat(priceThreshold));
 
     try {
       setLoading(true);
-      console.log('🔄 Setting task completion condition on blockchain...');
-      await web3Service.completeTaskIfPriceAbove(parseInt(selectedTaskIndex), parseInt(priceThreshold * 1000000)); // Convert to 6 decimal places
+      console.log('Attempting to complete task based on current price...');
+      await web3Service.completeTaskIfPriceAbove(parseInt(selectedTaskIndex), to12DigitPriceFormat(priceThreshold)); // Convert to 6 decimal places
       await loadTasks();
-      console.log('✅ Task completion condition set successfully parse threshold is ', priceThreshold * 1000000);
-      alert('Task completion condition set successfully!');
+      console.log('Task completion attempt finished, threshold was ', to12DigitPriceFormat(priceThreshold));
+      alert(`Task completion attempted! If current ETH price ($${formatPrice(currentPrice)}) is above $${priceThreshold}, your task should now be complete!`);
       setSelectedTaskIndex('');
       setPriceThreshold('');
     } catch (error) {
-      console.error('Error setting task completion condition:', error);
-      alert("The task couldn't be completed. Please check the price threshold and try again.");
+      console.error('Error completing task:', error);
+      alert("Oops! We couldn't complete your task. The current price might be below your threshold, or there was a network issue. Please try again!");
     } finally {
       setLoading(false);
     }
@@ -136,10 +138,10 @@ function App() {
     return (
       <div className="app">
         <div className="connect-wallet">
-          <h1>Decentralized Todo App</h1>
-          <p>Connect your wallet to get started</p>
+          <h1>Your Smart Todo App</h1>
+          <p>Hey there! Let's connect your wallet and start managing tasks on the blockchain!</p>
           <button onClick={connectWallet} disabled={loading} className="connect-btn">
-            {loading ? 'Connecting...' : 'Connect MetaMask'}
+            {loading ? 'Connecting your wallet...' : 'Connect with MetaMask'}
           </button>
         </div>
       </div>
@@ -149,49 +151,49 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Decentralized Todo App</h1>
+        <h1>Your Smart Todo App</h1>
         <div className="wallet-info">
-          <p>Connected: {formatAddress(account)}</p>
-          {isAdmin && <span className="admin-badge">Admin</span>}
+          <p>Hey {formatAddress(account)}!</p>
+          {isAdmin && <span className="admin-badge">🔑 Admin</span>}
         </div>
       </header>
 
       <div className="stats">
         <div className="stat-item">
-          <h3>Total Tasks</h3>
+          <h3>Your Tasks</h3>
           <p>{taskCount}</p>
         </div>
         <div className="stat-item">
-          <h3>Current ETH Price</h3>
-          <p>{currentPrice ? `$${formatPrice(currentPrice)}` : 'Loading...'}</p>
+          <h3>ETH Price Right Now</h3>
+          <p>{currentPrice ? `$${formatPrice(currentPrice)}` : 'Getting latest price...'}</p>
         </div>
       </div>
 
       <div className="add-task-section">
-        <h2>Add New Task</h2>
+        <h2>What's on your mind?</h2>
         <div className="add-task-form">
           <input
             type="text"
             value={newTask}
             onChange={(e) => setNewTask(e.target.value)}
-            placeholder="Enter task description"
+            placeholder="Tell me what you need to get done..."
             disabled={loading}
           />
           <button onClick={addTask} disabled={loading || !newTask.trim()}>
-            {loading ? 'Adding...' : 'Add Task'}
+            {loading ? 'Adding your task...' : 'Add to blockchain!'}
           </button>
         </div>
       </div>
 
       <div className="price-condition-section">
-        <h2>Complete Task Based on Price</h2>
+        <h2>Price-Based Task Completion</h2>
         <div className="price-condition-form">
           <select
             value={selectedTaskIndex}
             onChange={(e) => setSelectedTaskIndex(e.target.value)}
             disabled={loading}
           >
-            <option value="">Select a task</option>
+            <option value="">Pick a task...</option>
             {tasks.map((task, index) => (
               <option key={index} value={index}>
                 Task {index + 1}: {task.text}
@@ -202,25 +204,25 @@ function App() {
             type="number"
             value={priceThreshold}
             onChange={(e) => setPriceThreshold(e.target.value)}
-            placeholder="Price threshold (in cents)"
+            placeholder="Set price threshold (e.g., 2500.50)..."
             disabled={loading}
           />
           <button
             onClick={completeTaskWithPrice}
             disabled={loading || !selectedTaskIndex || !priceThreshold}
           >
-            {loading ? 'Setting...' : 'Set Price Condition'}
+            {loading ? 'Setting threshold...' : 'Complete if price allows'}
           </button>
         </div>
         <p className="helper-text">
-          Task will be automatically completed when ETH price goes above the threshold
+          Task will be completed only if current ETH price is above your threshold when you click the button.
         </p>
       </div>
 
       <div className="tasks-section">
-        <h2>Tasks</h2>
+        <h2>Your Task Journey</h2>
         {tasks.length === 0 ? (
-          <p className="no-tasks">No tasks yet. Add your first task!</p>
+          <p className="no-tasks">Your task list is empty! Ready to add your first one? Let's make things happen!</p>
         ) : (
           <div className="tasks-list">
             {tasks.map((task, index) => (
@@ -228,13 +230,13 @@ function App() {
                 <div className="task-content">
                   <h4>Task #{index + 1}</h4>
                   <p>{task.text}</p>
-                  <small>Created: {formatTimestamp(task.timestamp)}</small>
+                  <small>Started: {formatTimestamp(task.timestamp)}</small>
                 </div>
                 <div className="task-status">
                   {task.completed ? (
-                    <span className="status-completed">✓ Completed</span>
+                    <span className="status-completed">Done!</span>
                   ) : (
-                    <span className="status-pending">⏳ Pending</span>
+                    <span className="status-pending">In progress</span>
                   )}
                 </div>
               </div>
