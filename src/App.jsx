@@ -40,6 +40,7 @@ function App() {
   const loadTasks = async () => {
     try {
       const taskList = await web3Service.getTasks();
+      console.log('📝 Loaded tasks from blockchain:', taskList);
       setTasks(taskList);
     } catch (error) {
       console.error('Error loading tasks:', error);
@@ -74,14 +75,17 @@ function App() {
   };
 
   const addTask = async () => {
+    console.log('➕ addTask function called with newTask:', newTask);
     if (!newTask.trim()) return;
 
     try {
       setLoading(true);
+      console.log('📝 Adding task to blockchain:', newTask);
       await web3Service.addTask(newTask);
       setNewTask('');
       await loadTasks();
       await loadTaskCount();
+      console.log('✅ Task added successfully');
       alert('Task added successfully!');
     } catch (error) {
       console.error('Error adding task:', error);
@@ -92,18 +96,24 @@ function App() {
   };
 
   const completeTaskWithPrice = async () => {
+    console.log('💰 completeTaskWithPrice function called');
+    console.log('📊 Selected task index:', selectedTaskIndex);
+    console.log('💵 Price threshold:', priceThreshold);
+
     if (!selectedTaskIndex || !priceThreshold) return;
 
     try {
       setLoading(true);
-      await web3Service.completeTaskIfPriceAbove(parseInt(selectedTaskIndex), parseInt(priceThreshold));
+      console.log('🔄 Setting task completion condition on blockchain...');
+      await web3Service.completeTaskIfPriceAbove(parseInt(selectedTaskIndex), parseInt(priceThreshold * 1000000)); // Convert to 6 decimal places
       await loadTasks();
+      console.log('✅ Task completion condition set successfully parse threshold is ', priceThreshold * 1000000);
       alert('Task completion condition set successfully!');
       setSelectedTaskIndex('');
       setPriceThreshold('');
     } catch (error) {
       console.error('Error setting task completion condition:', error);
-      alert('Error setting task completion condition: ' + error.message);
+      alert("The task couldn't be completed. Please check the price threshold and try again.");
     } finally {
       setLoading(false);
     }
