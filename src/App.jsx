@@ -86,7 +86,7 @@ function App() {
       await loadTasks();
       await loadTaskCount();
       console.log('Task added successfully');
-      alert('🎉 Awesome! Your task has been added to the blockchain. Time to get things done!');
+      alert('Awesome! Your task has been added to the blockchain.');
     } catch (error) {
       console.error('Error adding task:', error);
       alert('Hmm, something went wrong while adding your task. Mind giving it another try?');
@@ -107,15 +107,24 @@ function App() {
     try {
       setLoading(true);
       console.log('Attempting to complete task based on current price...');
-      await web3Service.completeTaskIfPriceAbove(parseInt(selectedTaskIndex), to12DigitPriceFormat(priceThreshold)); // Convert to 6 decimal places
+      await web3Service.completeTaskIfPriceAbove(parseInt(selectedTaskIndex), to12DigitPriceFormat(priceThreshold));
       await loadTasks();
       console.log('Task completion attempt finished, threshold was ', to12DigitPriceFormat(priceThreshold));
-      alert(`Task completion attempted! If current ETH price ($${formatPrice(currentPrice)}) is above $${priceThreshold}, your task should now be complete!`);
+      alert(`🎯 Task completion attempted! If current ETH price ($${formatPrice(currentPrice)}) is above $${priceThreshold}, your task should now be complete!`);
       setSelectedTaskIndex('');
       setPriceThreshold('');
     } catch (error) {
       console.error('Error completing task:', error);
-      alert("Oops! We couldn't complete your task. The current price might be below your threshold, or there was a network issue. Please try again!");
+      let errorMessage = "";
+
+      if (error.message.includes("Task already completed")) {
+        errorMessage = "This task is already completed!";
+      } else if (error.message.includes("ethers-user-denied")) {
+        errorMessage = "You denied the transaction. Please try again.";
+      } else if (error.message.includes("ETH price too low")) {
+        errorMessage = `The current price $${formatPrice(currentPrice)} is below your threshold of $${priceThreshold}. Task not completed.`;
+      }
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
