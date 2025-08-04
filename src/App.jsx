@@ -12,6 +12,8 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [priceThreshold, setPriceThreshold] = useState('');
   const [selectedTaskIndex, setSelectedTaskIndex] = useState('');
+  const [showAddAdminPopup, setShowAddAdminPopup] = useState(false);
+  const [newAdminAddress, setNewAdminAddress] = useState('');
 
   useEffect(() => {
     // Check if wallet is already connected
@@ -132,6 +134,38 @@ function App() {
     }
   };
 
+  const addAdmin = async () => {
+    if (!newAdminAddress.trim()) {
+      alert('Please enter a valid admin address');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('Adding new admin:', newAdminAddress);
+      const result = await web3Service.addAdmin(newAdminAddress.trim());
+      console.log('Admin added successfully:', result);
+      alert(`Success! ${newAdminAddress} is now an admin.`);
+      setNewAdminAddress('');
+      setShowAddAdminPopup(false);
+    } catch (error) {
+      console.error('Error adding admin:', error);
+      let errorMessage = "Failed to add admin. ";
+
+      if (error.message.includes('Only existing admins')) {
+        errorMessage += "Only existing admins can add new admins.";
+      } else if (error.message.includes('revert')) {
+        errorMessage += "Transaction reverted. Make sure you have admin privileges.";
+      } else {
+        errorMessage += error.message;
+      }
+
+      alert(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatAddress = (address) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
@@ -165,7 +199,16 @@ function App() {
         <h1>Your Smart Todo App</h1>
         <div className="wallet-info">
           <p>Hey {formatAddress(account)}!</p>
-          {isAdmin && <span className="admin-badge">🔑 Admin</span>}
+          {isAdmin && <span className="admin-badge">Admin logged in</span>}
+          {isAdmin && (
+            <button
+              className="add-admin-btn"
+              onClick={() => setShowAddAdminPopup(true)}
+              disabled={loading}
+            >
+              Add Admin
+            </button>
+          )}
         </div>
       </header>
 
@@ -255,6 +298,53 @@ function App() {
           </div>
         )}
       </div>
+
+      {/* Add Admin Popup */}
+      {showAddAdminPopup && (
+        <div className="popup-overlay" onClick={() => setShowAddAdminPopup(false)}>
+          <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header">
+              <h3>Add New Admin</h3>
+              <button
+                className="popup-close"
+                onClick={() => setShowAddAdminPopup(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="popup-body">
+              <p>Enter the wallet address of the new admin:</p>
+              <input
+                type="text"
+                value={newAdminAddress}
+                onChange={(e) => setNewAdminAddress(e.target.value)}
+                placeholder="0x1234567890123456789012345678901234567890"
+                disabled={loading}
+                className="admin-address-input"
+              />
+            </div>
+            <div className="popup-footer">
+              <button
+                className="popup-btn secondary"
+                onClick={() => {
+                  setShowAddAdminPopup(false);
+                  setNewAdminAddress('');
+                }}
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                className="popup-btn primary"
+                onClick={addAdmin}
+                disabled={loading || !newAdminAddress.trim()}
+              >
+                {loading ? 'Adding Admin...' : 'Add Admin'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
