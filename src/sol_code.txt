@@ -1,0 +1,109 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+// Chainlink interface for price feeds
+interface AggregatorV3Interface {
+    function latestRoundData()
+        external
+        view
+        returns (
+            uint80 roundID,
+            int answer,
+            uint startedAt,
+            uint updatedAt,
+            uint80 answeredInRound
+        );
+}
+
+contract ToDoList {
+    struct Task {
+        string ipfsHash;     // Hash of task data stored on IPFS
+        bool completed;
+        uint timestamp;
+    }
+
+    address public owner;
+    AggregatorV3Interface internal priceFeed;
+    Task[] public tasks;
+
+    mapping(address => bool) public admins;
+
+    // Events
+    event TaskAdded(uint indexed id, string ipfsHash);
+    event TaskCompleted(uint indexed id);
+    event AdminAdded(address indexed admin);
+
+    // Modifiers
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not the owner");
+        _;
+    }
+
+    modifier onlyAdmin() {
+        require(admins[msg.sender], "Not an admin");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+        admins[msg.sender] = true;
+
+        // ETH/USD price feed on Sepolia
+        priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
+    }
+
+    // Add a new admin
+    function addAdmin(address _admin) public onlyOwner {
+        admins[_admin] = true;
+        emit AdminAdded(_admin);
+    }
+
+    function debugComparePrice(int threshold) public view returns (int, bool) {
+        (, int price,,,) = priceFeed.latestRoundData();
+        return (price, price > threshold);
+    }
+
+
+    // Add a new task with IPFS hash
+    function addTask(string memory _ipfsHash) public onlyAdmin {
+        tasks.push(Task({
+            ipfsHash: _ipfsHash,
+            completed: false,
+            timestamp: block.timestamp
+        }));
+        emit TaskAdded(tasks.length - 1, _ipfsHash);
+    }
+
+    // Complete a task if the ETH price is above a given threshold (8 decimals)
+    function completeTaskIfPriceAbove(uint _index, int _threshold) public onlyAdmin {
+        require(_index < tasks.length, "Invalid task index");
+        require(!tasks[_index].completed, "Task already completed");
+
+        (, int price,,,) = priceFeed.latestRoundData();
+        require(price > _threshold, "ETH price too low");
+
+        tasks[_index].completed = true;
+        emit TaskCompleted(_index);
+    }
+
+    // View all tasks
+    function getTasks() public view returns (Task[] memory) {
+        return tasks;
+    }
+
+    // Return the current ETH/USD price (8 decimal precision)
+    function getLatestPrice() public view returns (int) {
+        (, int price,,,) = priceFeed.latestRoundData();
+        return price;
+    }
+
+    // Return the current feed address (for debugging)
+    function getPriceFeedAddress() public view returns (address) {
+        return address(priceFeed);
+    }
+
+    // Total number of tasks
+    function getTaskCount() public view returns (uint) {
+        return tasks.length;
+    }
+}
