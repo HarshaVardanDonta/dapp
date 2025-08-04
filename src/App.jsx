@@ -110,7 +110,7 @@ function App() {
       await web3Service.completeTaskIfPriceAbove(parseInt(selectedTaskIndex), to12DigitPriceFormat(priceThreshold));
       await loadTasks();
       console.log('Task completion attempt finished, threshold was ', to12DigitPriceFormat(priceThreshold));
-      alert(`🎯 Task completion attempted! If current ETH price ($${formatPrice(currentPrice)}) is above $${priceThreshold}, your task should now be complete!`);
+      alert(`Success!`);
       setSelectedTaskIndex('');
       setPriceThreshold('');
     } catch (error) {
